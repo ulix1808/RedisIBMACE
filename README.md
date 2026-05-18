@@ -2,7 +2,27 @@
 
 Este repositorio documenta una **prueba de concepto (PoC)** para integrar **Redis** con **IBM App Connect Enterprise 12.x**, usando Redis como **caché** y almacén clave-valor frente a consultas repetidas a una **base de datos tradicional**.
 
-**Manual paso a paso (flujo con caché en ACE 12):** consulta [`docs/MANUAL-CACHE-REDIS-ACE12.md`](docs/MANUAL-CACHE-REDIS-ACE12.md) — incluye arquitectura cache-aside, Toolkit, JARs (Jedis), dos **JavaCompute** (GET con terminal `miss` + SET con TTL), propiedades del nodo, pruebas y resolución de incidencias.
+**Manual paso a paso (flujo con caché en ACE 12):** [`docs/MANUAL-CACHE-REDIS-ACE12.md`](docs/MANUAL-CACHE-REDIS-ACE12.md)  
+**Despliegue Redis Enterprise en OpenShift (Operator):** [`docs/DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md`](docs/DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md)
+
+---
+
+## Validación de plataforma: RHEL 10 y Redis Enterprise
+
+**Contexto del cliente (referencia 15 mayo 2026):** el entorno objetivo incluye **Red Hat Enterprise Linux 10**. En la matriz oficial de **Redis Enterprise Software**, Redis documenta soporte para **RHEL 8 y RHEL 9** (y clones compatibles con ABI RHEL). **RHEL 10 no figura** como plataforma soportada para instalación on‑prem de Redis Enterprise en esa fecha.
+
+| Plataforma | Redis Enterprise Software (instalación en SO) | Notas |
+|------------|-----------------------------------------------|--------|
+| **RHEL 9** | ✅ (desde Redis Software **7.4.2**, según [Supported platforms](https://redis.io/docs/latest/operate/rs/references/supported-platforms/)) | Opción para VMs/nodos dedicados solo a Redis. |
+| **RHEL 10** | ❌ No listado (mayo 2026) | No planificar RPM/instalador Enterprise directo sobre RHEL 10 sin confirmación comercial y nueva matriz Redis. |
+| **OpenShift + Redis Operator** | ✅ Validar **versión OCP + versión operador** | Redis corre en contenedores; desacopla RHEL 10 del host ACE de la capa Redis Enterprise. Ver [manual OpenShift](docs/DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md). |
+| **Redis OSS en RHEL 10** | Fuera del alcance Enterprise | Útil solo para laboratorio; no equivale al soporte de Redis Enterprise. |
+
+**Implicación para la PoC con Banrural:**
+
+1. **ACE en RHEL 10** puede consumir Redis por red (host/puerto/TLS) aunque Redis no se instale en ese mismo SO.  
+2. Si el requisito es **Redis Enterprise con soporte**, priorizar **OpenShift (Operator)** o **servidores RHEL 9** para Redis, no instalación Enterprise nativa en RHEL 10.  
+3. Antes del despliegue, ejecutar checklist: versión RHEL/OCP, channel del operador, imágenes del CSV y conectividad desde Integration Server → Redis.
 
 ---
 
@@ -26,6 +46,8 @@ Este repositorio documenta una **prueba de concepto (PoC)** para integrar **Redi
 
 ## Parte 1 — Instalar Redis en Linux
 
+> Si el cliente usa **RHEL 10** y requiere **Redis Enterprise**, no uses la instalación por paquete del SO en RHEL 10; sigue la [validación de plataforma](#validación-de-plataforma-rhel-10-y-redis-enterprise) y el [despliegue en OpenShift](docs/DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md). Las secciones siguientes aplican a **Redis OSS** o laboratorios en distribuciones soportadas.
+
 ### 1.1 Ubuntu / Debian (paquete del sistema)
 
 ```bash
@@ -44,6 +66,8 @@ redis-cli ping
 ```
 
 ### 1.2 RHEL / Rocky / Alma (AppStream o EPEL, según distribución)
+
+**Solo Redis OSS** vía repositorios de la distro (no Redis Enterprise). Para **RHEL 9** con Redis Enterprise Software, usar el instalador oficial de Redis y la [matriz de plataformas](https://redis.io/docs/latest/operate/rs/references/supported-platforms/). **No aplicar este bloque a RHEL 10** si se exige Enterprise.
 
 ```bash
 sudo dnf install -y redis
@@ -125,8 +149,11 @@ Instrumentación: registro en ACE, APM o logs estructurados; en Redis: `INFO sta
 
 ## Referencias
 
-- **Manual ACE 12 (este repo):** [docs/MANUAL-CACHE-REDIS-ACE12.md](docs/MANUAL-CACHE-REDIS-ACE12.md)  
-- IBM — *How to use IBM App Connect with Redis* (conector / operaciones / conexión): https://www.ibm.com/docs/en/app-connect/12.0.x?topic=hga-redis-1  
+- **Manual ACE 12:** [docs/MANUAL-CACHE-REDIS-ACE12.md](docs/MANUAL-CACHE-REDIS-ACE12.md)  
+- **OpenShift + Redis Operator:** [docs/DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md](docs/DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md)  
+- Redis Enterprise — [Supported platforms](https://redis.io/docs/latest/operate/rs/references/supported-platforms/)  
+- Redis Enterprise for Kubernetes — [Supported Kubernetes distributions](https://redis.io/docs/latest/operate/kubernetes/reference/supported_k8s_distributions/)  
+- IBM — *How to use IBM App Connect with Redis*: https://www.ibm.com/docs/en/app-connect/12.0.x?topic=hga-redis-1  
 - IBM ACE 12 — *Accessing a user-defined policy from a JavaCompute node*: https://www.ibm.com/docs/en/app-connect-enterprise/12.0.x?topic=java-accessing-user-defined-policy-from-javacompute-node  
 - Redis: https://redis.io/docs/
 
