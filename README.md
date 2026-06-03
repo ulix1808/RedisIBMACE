@@ -3,6 +3,7 @@
 Este repositorio documenta una **prueba de concepto (PoC)** para integrar **Redis** con **IBM App Connect Enterprise 12.x**, usando Redis como **caché** y almacén clave-valor frente a consultas repetidas a una **base de datos tradicional**.
 
 **Manual paso a paso (flujo con caché en ACE 12):** [`docs/MANUAL-CACHE-REDIS-ACE12.md`](docs/MANUAL-CACHE-REDIS-ACE12.md)  
+**Redis OSS en RHEL 10 (validado):** [`docs/INSTALACION-REDIS-OSS-RHEL10.md`](docs/INSTALACION-REDIS-OSS-RHEL10.md)  
 **Despliegue Redis Enterprise en OpenShift (Operator):** [`docs/DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md`](docs/DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md)
 
 ---
@@ -16,7 +17,7 @@ Este repositorio documenta una **prueba de concepto (PoC)** para integrar **Redi
 | **RHEL 9** | ✅ (desde Redis Software **7.4.2**, según [Supported platforms](https://redis.io/docs/latest/operate/rs/references/supported-platforms/)) | Opción para VMs/nodos dedicados solo a Redis. |
 | **RHEL 10** | ❌ No listado (mayo 2026) | No planificar RPM/instalador Enterprise directo sobre RHEL 10 sin confirmación comercial y nueva matriz Redis. |
 | **OpenShift + Redis Operator** | ✅ Validar **versión OCP + versión operador** | Redis corre en contenedores; desacopla RHEL 10 del host ACE de la capa Redis Enterprise. Ver [manual OpenShift](docs/DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md). |
-| **Redis OSS en RHEL 10** | Fuera del alcance Enterprise | Útil solo para laboratorio; no equivale al soporte de Redis Enterprise. |
+| **Redis OSS en RHEL 10** | ✅ vía **Remi** (p. ej. Redis 7.2.14) | PoC/laboratorio; no equivale al soporte Redis Enterprise. Guía: [`INSTALACION-REDIS-OSS-RHEL10.md`](docs/INSTALACION-REDIS-OSS-RHEL10.md). |
 
 **Implicación para la PoC con Banrural:**
 
@@ -46,7 +47,7 @@ Este repositorio documenta una **prueba de concepto (PoC)** para integrar **Redi
 
 ## Parte 1 — Instalar Redis en Linux
 
-> Si el cliente usa **RHEL 10** y requiere **Redis Enterprise**, no uses la instalación por paquete del SO en RHEL 10; sigue la [validación de plataforma](#validación-de-plataforma-rhel-10-y-redis-enterprise) y el [despliegue en OpenShift](docs/DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md). Las secciones siguientes aplican a **Redis OSS** o laboratorios en distribuciones soportadas.
+> **RHEL 10:** Redis Enterprise no aplica on‑prem; para **Redis OSS** sigue [`docs/INSTALACION-REDIS-OSS-RHEL10.md`](docs/INSTALACION-REDIS-OSS-RHEL10.md). Para Enterprise, OpenShift: [`docs/DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md`](docs/DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md). Las secciones genéricas siguientes aplican a otras distros o referencia rápida.
 
 ### 1.1 Ubuntu / Debian (paquete del sistema)
 
@@ -65,18 +66,33 @@ redis-cli ping
 # Esperado: PONG
 ```
 
-### 1.2 RHEL / Rocky / Alma (AppStream o EPEL, según distribución)
+### 1.2 RHEL 10 — Redis OSS (Remi)
 
-**Solo Redis OSS** vía repositorios de la distro (no Redis Enterprise). Para **RHEL 9** con Redis Enterprise Software, usar el instalador oficial de Redis y la [matriz de plataformas](https://redis.io/docs/latest/operate/rs/references/supported-platforms/). **No aplicar este bloque a RHEL 10** si se exige Enterprise.
+**Guía completa validada:** [`docs/INSTALACION-REDIS-OSS-RHEL10.md`](docs/INSTALACION-REDIS-OSS-RHEL10.md).
+
+Resumen:
+
+```bash
+sudo dnf install -y \
+  https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm \
+  https://rpms.remirepo.net/enterprise/remi-release-10.rpm
+sudo crb enable
+sudo dnf module enable redis:remi-7.2 -y
+sudo dnf install -y redis
+sudo systemctl enable --now redis
+```
+
+### 1.3 RHEL 8/9 / Rocky / Alma (AppStream)
+
+**Redis OSS** vía repos de la distro. **Redis Enterprise** on‑prem: solo RHEL 8/9 según [matriz Redis](https://redis.io/docs/latest/operate/rs/references/supported-platforms/).
 
 ```bash
 sudo dnf install -y redis
-sudo systemctl enable redis
-sudo systemctl start redis
+sudo systemctl enable --now redis
 redis-cli ping
 ```
 
-### 1.3 Configuración mínima recomendada para laboratorio
+### 1.4 Configuración mínima recomendada para laboratorio
 
 Edita el fichero de configuración (ruta típica: `/etc/redis/redis.conf` o `/etc/redis.conf`):
 
@@ -93,11 +109,11 @@ Tras cambios:
 sudo systemctl restart redis-server   # o redis, según distro
 ```
 
-### 1.4 Firewall (si aplica)
+### 1.5 Firewall (si aplica)
 
 Abre solo el puerto que uses (por defecto **6379**) hacia los hosts de los **Integration Servers** ACE.
 
-### 1.5 TLS (producción)
+### 1.6 TLS (producción)
 
 Si Redis expone TLS, alinea certificados y validación con la política de tu organización. La guía de conexión del ecosistema IBM (host, puerto, contraseña, base, certificados) está en [Connecting to Redis](https://www.ibm.com/docs/en/app-connect/12.0.x?topic=hga-redis-1).
 
@@ -150,6 +166,7 @@ Instrumentación: registro en ACE, APM o logs estructurados; en Redis: `INFO sta
 ## Referencias
 
 - **Manual ACE 12:** [docs/MANUAL-CACHE-REDIS-ACE12.md](docs/MANUAL-CACHE-REDIS-ACE12.md)  
+- **Redis OSS RHEL 10:** [docs/INSTALACION-REDIS-OSS-RHEL10.md](docs/INSTALACION-REDIS-OSS-RHEL10.md)  
 - **OpenShift + Redis Operator:** [docs/DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md](docs/DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md)  
 - Redis Enterprise — [Supported platforms](https://redis.io/docs/latest/operate/rs/references/supported-platforms/)  
 - Redis Enterprise for Kubernetes — [Supported Kubernetes distributions](https://redis.io/docs/latest/operate/kubernetes/reference/supported_k8s_distributions/)  

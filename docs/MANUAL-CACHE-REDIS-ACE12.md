@@ -34,7 +34,7 @@ flowchart LR
 ## 3. Prerrequisitos
 
 1. **Redis** instalado y accesible desde el host del **Integration Server** (puerto típico `6379`). Si aún no lo tienes, sigue la **Parte 1** del [`README.md`](../README.md) del repositorio.  
-   - Si el entorno es **RHEL 10** y se requiere **Redis Enterprise**, revisa primero la [validación RHEL 10 / Enterprise](../README.md#validación-de-plataforma-rhel-10-y-redis-enterprise) y el [despliegue en OpenShift con Operator](DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md); ACE solo necesita endpoint, credenciales y TLS, no el SO donde corre Redis.  
+   - Si el entorno es **RHEL 10**, instala Redis OSS con [`INSTALACION-REDIS-OSS-RHEL10.md`](INSTALACION-REDIS-OSS-RHEL10.md); ACE solo necesita endpoint, credenciales y TLS.  
 2. **IBM ACE 12** con Toolkit y un Integration Server de prueba.  
 3. **JDK** alineado con el que usa tu instalación ACE 12 para compilación del código Java del flujo.  
 4. Bibliotecas **Jedis** (y **Apache Commons Pool2** para pool de conexiones), en versiones compatibles con tu JDK (p. ej. Jedis 4.x con Java 8, Jedis 5.x con Java 11+).
