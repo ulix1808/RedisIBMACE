@@ -6,6 +6,8 @@ Guía validada en **RHEL 10.1 (x86_64)** para la PoC **Redis + IBM ACE 12** con 
 
 **Validación ejecutada:** junio 2026 — RHEL 10.1 en AWS EC2 (`t3.micro`, x86_64), Redis **7.2.14** vía `redis:remi-7.2`.
 
+**Paquete offline (sin Internet en el servidor):** [`packages/rhel10-x86_64/offline-redis-oss/`](../packages/rhel10-x86_64/offline-redis-oss/) — RPMs, tarball fuente, scripts y checksums.
+
 ---
 
 ## 1. Resumen ejecutivo
@@ -53,7 +55,99 @@ RHEL 10 AppStream puede ofrecer **Valkey** (fork compatible con Redis). Esta gu�
 
 ---
 
-## 4. Instalación paso a paso
+## 4. Instalación offline (sin Internet en RHEL 10)
+
+Para el cliente Banrural: el servidor **no tiene salida a Internet** para descargar paquetes. Este repositorio incluye los **artefactos necesarios** para instalar **solo Redis OSS**.
+
+### 4.1 Contenido del paquete offline
+
+Ruta en el repo clonado:
+
+```text
+packages/rhel10-x86_64/offline-redis-oss/
+├── rpms/
+│   ├── epel-release-latest-10.noarch.rpm
+│   ├── remi-release-10.rpm
+│   └── redis-7.2.14-1.module_redis.7.2.el10.remi.x86_64.rpm
+├── gpg/RPM-GPG-KEY-remi.el10
+├── source/redis-7.4.8.tar.gz          # plan B: compilar sin RPM
+├── meta/SHA256SUMS-rpms
+├── meta/SHA256SUMS-source
+└── scripts/
+    ├── install-redis-offline-rpm.sh
+    └── install-redis-offline-source.sh
+```
+
+Verificar integridad en el servidor (opcional):
+
+```bash
+cd packages/rhel10-x86_64/offline-redis-oss
+sha256sum -c meta/SHA256SUMS-rpms
+sha256sum -c meta/SHA256SUMS-source
+```
+
+### 4.2 Copiar al servidor RHEL 10
+
+Ejemplo desde una máquina con acceso al repo:
+
+```bash
+scp -r packages/rhel10-x86_64/offline-redis-oss ec2-user@<IP_SERVIDOR>:/tmp/
+```
+
+O empaquetar:
+
+```bash
+tar czf redis-offline-rhel10-x86_64.tgz -C packages/rhel10-x86_64 offline-redis-oss
+# transferir redis-offline-rhel10-x86_64.tgz por medio interno
+```
+
+### 4.3 Instalación por RPM (recomendada)
+
+En el servidor destino:
+
+```bash
+cd /tmp/offline-redis-oss/scripts
+sudo ./install-redis-offline-rpm.sh
+```
+
+El script:
+
+1. Importa la clave GPG de Remi.  
+2. Instala `epel-release` y `remi-release` (metadatos locales; **no requiere** `dnf install` desde Internet si ya se instala el RPM de Redis directamente).  
+3. Instala `redis-7.2.14` con `rpm -Uvh`.  
+4. Habilita `redis.service` y ejecuta `redis-cli ping`.
+
+**Dependencias:** el RPM de Redis requiere librerías de **RHEL BaseOS** (`glibc`, `openssl-libs`, `systemd`, `logrotate`, `shadow-utils`). Deben estar presentes en la imagen RHEL o instalarse desde el **DVD/ISO corporativo** de RHEL 10 (no incluido en este paquete de ~5 MB).
+
+Si `rpm -Uvh` reporta dependencias faltantes:
+
+```bash
+# Ejemplo: instalar desde ISO local de RHEL (ajustar ruta del medio)
+sudo dnf install -y logrotate shadow-utils openssl systemd --disablerepo="*" --enablerepo=BaseOS
+# o usar plan B (fuente)
+```
+
+### 4.4 Plan B — Compilar desde tarball (sin RPM)
+
+Si no se puede instalar el RPM:
+
+```bash
+cd /tmp/offline-redis-oss/scripts
+sudo ./install-redis-offline-source.sh
+```
+
+Requiere **gcc/make** y librerías de desarrollo desde el medio de instalación RHEL (`Development Tools`). Instala binarios en `/usr/local` por defecto.
+
+### 4.5 Qué **no** incluye este paquete
+
+- Redis Enterprise ni operador OpenShift.  
+- Repositorio completo de RHEL/EPEL/Remi (solo bootstrap + Redis).  
+- Dependencias BaseOS (usar ISO RHEL del cliente).  
+- Arquitectura **aarch64** (solo **x86_64** en este bundle).
+
+---
+
+## 5. Instalación en línea (con acceso a repos)
 
 ### Paso 1 — Verificar sistema
 
@@ -122,7 +216,7 @@ rpm -q redis
 
 ---
 
-## 5. Configuración para PoC (caché + ACE)
+## 6. Configuración para PoC (caché + ACE)
 
 No editar el archivo monolítico completo; usar un **drop-in** en `/etc/redis/redis.conf.d/`.
 
@@ -189,9 +283,9 @@ Estado esperado: `Active: active (running)` y `Ready to accept connections`.
 
 ---
 
-## 6. Validación
+## 7. Validación
 
-### 6.1 Pruebas locales (en el servidor Redis)
+### 7.1 Pruebas locales (en el servidor Redis)
 
 ```bash
 redis-cli -a 'CAMBIAR_CONTRASEÑA_SEGURA' ping
@@ -213,14 +307,14 @@ os:Linux ... el10_1.x86_64 x86_64
 tcp_port:6379
 ```
 
-### 6.2 Verificar escucha de red
+### 7.2 Verificar escucha de red
 
 ```bash
 ss -lntp | grep 6379
 # LISTEN ... 0.0.0.0:6379
 ```
 
-### 6.3 Prueba desde host ACE (remoto)
+### 7.3 Prueba desde host ACE (remoto)
 
 Desde la VM/servidor donde corre el Integration Server:
 
@@ -230,7 +324,7 @@ redis-cli -h <IP_REDIS> -p 6379 -a 'CAMBIAR_CONTRASEÑA_SEGURA' ping
 
 Si no responde: revisar Security Group, firewall, ruta de red y `bind`/`protected-mode`.
 
-### 6.4 Checklist PoC
+### 7.4 Checklist PoC
 
 - [ ] `redis-server --version` ≥ 7.2 (stream Remi elegido)
 - [ ] Servicio `redis` activo en systemd
@@ -242,7 +336,7 @@ Si no responde: revisar Security Group, firewall, ruta de red y `bind`/`protecte
 
 ---
 
-## 7. Conexión desde IBM ACE 12
+## 8. Conexión desde IBM ACE 12
 
 Usar los mismos parámetros en el **JavaCompute** o **User-defined policy** descritos en [`MANUAL-CACHE-REDIS-ACE12.md`](MANUAL-CACHE-REDIS-ACE12.md):
 
@@ -257,7 +351,7 @@ Patrón de claves: `ace:<aplicacion>:<recurso>:<id>`.
 
 ---
 
-## 8. Operación básica
+## 9. Operación básica
 
 ```bash
 # Estado
@@ -276,7 +370,7 @@ redis-cli -a '***' INFO memory
 
 ---
 
-## 9. Problemas frecuentes
+## 10. Problemas frecuentes
 
 | Síntoma | Causa / acción |
 |---------|----------------|
@@ -288,7 +382,7 @@ redis-cli -a '***' INFO memory
 
 ---
 
-## 10. Evolución post-PoC
+## 11. Evolución post-PoC
 
 | Objetivo | Camino |
 |----------|--------|

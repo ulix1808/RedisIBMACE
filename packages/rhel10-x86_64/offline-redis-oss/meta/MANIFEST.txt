@@ -1,0 +1,10 @@
+# Redis OSS offline bundle — RHEL 10 x86_64
+# Generado: 2026-06-04
+
+rpms/epel-release-latest-10.noarch.rpm
+rpms/remi-release-10.rpm
+rpms/redis-7.2.14-1.module_redis.7.2.el10.remi.x86_64.rpm
+gpg/RPM-GPG-KEY-remi.el10
+source/redis-7.4.8.tar.gz
+scripts/install-redis-offline-rpm.sh
+scripts/install-redis-offline-source.sh

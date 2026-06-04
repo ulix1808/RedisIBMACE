@@ -4,6 +4,7 @@ Este repositorio documenta una **prueba de concepto (PoC)** para integrar **Redi
 
 **Manual paso a paso (flujo con caché en ACE 12):** [`docs/MANUAL-CACHE-REDIS-ACE12.md`](docs/MANUAL-CACHE-REDIS-ACE12.md)  
 **Redis OSS en RHEL 10 (validado):** [`docs/INSTALACION-REDIS-OSS-RHEL10.md`](docs/INSTALACION-REDIS-OSS-RHEL10.md)  
+**Paquete offline Redis OSS (sin Internet):** [`packages/rhel10-x86_64/offline-redis-oss/`](packages/rhel10-x86_64/offline-redis-oss/)  
 **Despliegue Redis Enterprise en OpenShift (Operator):** [`docs/DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md`](docs/DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md)
 
 ---
@@ -70,7 +71,9 @@ redis-cli ping
 
 **Guía completa validada:** [`docs/INSTALACION-REDIS-OSS-RHEL10.md`](docs/INSTALACION-REDIS-OSS-RHEL10.md).
 
-Resumen:
+**Sin Internet en el servidor:** usar el paquete [`packages/rhel10-x86_64/offline-redis-oss/`](packages/rhel10-x86_64/offline-redis-oss/) (RPMs + tarball + scripts).
+
+Resumen (con repos):
 
 ```bash
 sudo dnf install -y \
@@ -167,6 +170,7 @@ Instrumentación: registro en ACE, APM o logs estructurados; en Redis: `INFO sta
 
 - **Manual ACE 12:** [docs/MANUAL-CACHE-REDIS-ACE12.md](docs/MANUAL-CACHE-REDIS-ACE12.md)  
 - **Redis OSS RHEL 10:** [docs/INSTALACION-REDIS-OSS-RHEL10.md](docs/INSTALACION-REDIS-OSS-RHEL10.md)  
+- **Paquete offline RHEL 10:** [packages/rhel10-x86_64/offline-redis-oss/](packages/rhel10-x86_64/offline-redis-oss/)  
 - **OpenShift + Redis Operator:** [docs/DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md](docs/DESPLIEGUE-REDIS-OPENSHIFT-OPERATOR.md)  
 - Redis Enterprise — [Supported platforms](https://redis.io/docs/latest/operate/rs/references/supported-platforms/)  
 - Redis Enterprise for Kubernetes — [Supported Kubernetes distributions](https://redis.io/docs/latest/operate/kubernetes/reference/supported_k8s_distributions/)  
