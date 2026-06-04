@@ -113,9 +113,25 @@ sudo ./install-redis-offline-rpm.sh
 El script:
 
 1. Importa la clave GPG de Remi.  
-2. Instala `epel-release` y `remi-release` (metadatos locales; **no requiere** `dnf install` desde Internet si ya se instala el RPM de Redis directamente).  
+2. Instala `epel-release` y `remi-release`.  
 3. Instala `redis-7.2.14` con `rpm -Uvh`.  
 4. Habilita `redis.service` y ejecuta `redis-cli ping`.
+
+**Después del script**, configurar acceso remoto para ACE (ver [`docs/INSTALACION-REDIS-OSS-RHEL10.md`](../../../docs/INSTALACION-REDIS-OSS-RHEL10.md) — *Paso 5b*):
+
+```bash
+sudo mkdir -p /etc/redis/redis.conf.d
+sudo tee /etc/redis/redis.conf.d/poc-red.conf << 'EOF'
+bind 0.0.0.0 ::1
+protected-mode yes
+port 6379
+requirepass TU_PASSWORD_SEGURA
+EOF
+grep -q 'include /etc/redis/redis.conf.d' /etc/redis/redis.conf || \
+  echo 'include /etc/redis/redis.conf.d/*.conf' | sudo tee -a /etc/redis/redis.conf
+sudo systemctl restart redis
+ss -lntp | grep 6379
+```
 
 **Dependencias:** el RPM de Redis requiere librerías de **RHEL BaseOS** (`glibc`, `openssl-libs`, `systemd`, `logrotate`, `shadow-utils`). Deben estar presentes en la imagen RHEL o instalarse desde el **DVD/ISO corporativo** de RHEL 10 (no incluido en este paquete de ~5 MB).
 
@@ -252,6 +268,48 @@ grep -q 'include /etc/redis/redis.conf.d' /etc/redis/redis.conf || \
 | `maxmemory` | 256mb–512mb en VMs pequeñas | Evita OOM en instancias tipo `t3.micro`. |
 | `maxmemory-policy` | `allkeys-lru` | Política típica de **caché**. |
 | `supervised systemd` | Integración con systemd | Correcto arranque/estado del servicio. |
+
+### Paso 5b — Acceso remoto desde ACE (post-instalación offline)
+
+Tras `install-redis-offline-rpm.sh`, Redis suele responder solo en **localhost** (`127.0.0.1:6379`). Si ACE u otro host **no puede conectar**, aplicar este drop-in para escuchar en red con contraseña:
+
+```bash
+sudo mkdir -p /etc/redis/redis.conf.d
+
+sudo tee /etc/redis/redis.conf.d/poc-red.conf << 'EOF'
+bind 0.0.0.0 ::1
+protected-mode yes
+port 6379
+requirepass TU_PASSWORD_SEGURA
+EOF
+
+# Incluir drop-ins si no está
+grep -q 'include /etc/redis/redis.conf.d' /etc/redis/redis.conf || \
+  echo 'include /etc/redis/redis.conf.d/*.conf' | sudo tee -a /etc/redis/redis.conf
+
+sudo systemctl restart redis
+ss -lntp | grep 6379
+```
+
+Salida esperada de `ss`: escucha en **`0.0.0.0:6379`** (no solo `127.0.0.1`).
+
+Validación local con contraseña:
+
+```bash
+redis-cli -a 'TU_PASSWORD_SEGURA' ping
+# PONG
+```
+
+Validación desde el host ACE:
+
+```bash
+redis-cli -h <IP_SERVIDOR_REDIS> -p 6379 -a 'TU_PASSWORD_SEGURA' ping
+# PONG
+```
+
+Si `PONG` local funciona pero falla remoto: revisar **firewalld**, reglas de red corporativa o **Security Group** (AWS) para TCP **6379** solo desde la IP/subred de ACE.
+
+> Sustituye `TU_PASSWORD_SEGURA` por la contraseña acordada con operaciones; no la documentes en el repositorio ni en el BAR de ACE en texto plano (usar policy/vault).
 
 ### Paso 6 — Firewall (si `firewalld` está activo)
 

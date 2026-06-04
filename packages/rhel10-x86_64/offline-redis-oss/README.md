@@ -39,7 +39,7 @@ cd packages/rhel10-x86_64/offline-redis-oss/scripts
 sudo ./install-redis-offline-rpm.sh
 ```
 
-Guía detallada: [`../../../docs/INSTALACION-REDIS-OSS-RHEL10.md`](../../../docs/INSTALACION-REDIS-OSS-RHEL10.md) (sección **Instalación offline**).
+Guía detallada: [`../../../docs/INSTALACION-REDIS-OSS-RHEL10.md`](../../../docs/INSTALACION-REDIS-OSS-RHEL10.md) (sección **Instalación offline** y **Paso 5b — Acceso remoto**).
 
 ---
 

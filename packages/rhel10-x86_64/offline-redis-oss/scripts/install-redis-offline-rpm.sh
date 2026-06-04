@@ -44,4 +44,11 @@ redis-cli ping
 
 echo ""
 echo "Instalación offline por RPM completada."
-echo "Configura /etc/redis/redis.conf.d/ según docs/INSTALACION-REDIS-OSS-RHEL10.md"
+echo "Siguiente paso: configurar acceso remoto (bind/requirepass) — ver docs/INSTALACION-REDIS-OSS-RHEL10.md Paso 5b"
+echo "  sudo tee /etc/redis/redis.conf.d/poc-red.conf << 'EOF'"
+echo "  bind 0.0.0.0 ::1"
+echo "  protected-mode yes"
+echo "  port 6379"
+echo "  requirepass TU_PASSWORD_SEGURA"
+echo "  EOF"
+echo "  sudo systemctl restart redis && ss -lntp | grep 6379"
